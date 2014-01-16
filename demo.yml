@@ -1,0 +1,91 @@
+heat_template_version: 2013-05-23
+
+description: >
+  HOT template to deploy two servers into an existing neutron tenant network and
+  assign floating IP addresses to each server so they are routable from the
+  public network.
+
+parameters:
+  # admin_user:
+  #   type: string
+  #   description: Name of admin user
+  key_name:
+    type: string
+    description: Name of keypair to assign to servers
+  image:
+    type: string
+    description: Name of image to use for servers
+  flavor:
+    type: string
+    description: Flavor to use for servers
+  public_net_id:
+    type: string
+    description: >
+      ID of public network for which floating IP addresses will be allocated
+  private_net_id:
+    type: string
+    description: ID of private network into which servers get deployed
+  private_subnet_id:
+    type: string
+    description: ID of private sub network into which servers get deployed
+  puppet_repo:
+    type: string
+    description: Git repo with puppet Puppetfile and manifests
+
+resources:
+  server1:
+    type: OS::Nova::Server
+    properties:
+      name: Server1
+      image: { get_param: image }
+      flavor: { get_param: flavor }
+      key_name: { get_param: key_name }
+      # admin_user: { get_param: admin_user }
+      networks:
+        - port: { get_resource: server1_port }
+      user_data: 
+        str_replace:
+          template: |
+            #!/bin/bash
+
+            apt-key adv --recv-key --keyserver pool.sks-keyservers.net 4BD6EC30
+            echo "deb http://apt.puppetlabs.com precise main" > /etc/apt/sources.list.d/puppetlabs.list
+            echo "deb http://apt.puppetlabs.com precise dependencies" >> /etc/apt/sources.list.d/puppetlabs.list
+            apt-get update
+            apt-get -y install puppet ruby1.9.1-full git
+
+            gem install r10k
+
+            TMP_PATH=`mktemp -d`
+
+            git clone $PUPPET_REPO $TMP_PATH
+            cp $TMP_PATH/puppet/Puppetfile /etc/puppet/Puppetfile
+            cd /etc/puppet
+            r10k puppetfile install ./Puppetfile
+
+            puppet apply $TMP_PATH/puppet/Manifests/default.pp
+
+          params:
+            $PUPPET_REPO: { get_param: puppet_repo }
+      config_drive: "True"
+
+  server1_port:
+    type: OS::Neutron::Port
+    properties:
+      network_id: { get_param: private_net_id }
+      fixed_ips:
+        - subnet_id: { get_param: private_subnet_id }
+
+  server1_floating_ip:
+    type: OS::Neutron::FloatingIP
+    properties:
+      floating_network_id: { get_param: public_net_id }
+      port_id: { get_resource: server1_port }
+
+outputs:
+  server1_private_ip:
+    description: IP address of server1 in private network
+    value: { get_attr: [ server1, first_address ] }
+  server1_public_ip:
+    description: Floating IP address of server1 in public network
+    value: { get_attr: [ server1_floating_ip, floating_ip_address ] }
