@@ -1,3 +1,4 @@
 forge 'forge.puppetlabs.com'
 mod 'softek/java7', '0.1.0'
 mod 'puppetlabs/apt', '1.0.1'
+mod 'puppetlabs/stdlib', '4.1.0'
