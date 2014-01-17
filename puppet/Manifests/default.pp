@@ -7,7 +7,7 @@ Exec {
 node default {
 
 
-        class { 'grid':
+        class { 'jekyll-site':
                 target_dir => '/var/www/jekyll-site',
                 repo_url => 'https://github.com/benschw/txt.fliglio.com.git',
                 branch => 'master',
@@ -15,10 +15,3 @@ node default {
         }
 
 }
-
-
-                $target_dir = '/var/www/jekyll-site',
-                $repo_url = 'https://github.com/benschw/txt.fliglio.com.git,
-                $branch = 'master',
-                $app_name = 'my-app'
-
