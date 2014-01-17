@@ -1,6 +1,0 @@
-#cloud-config
-ssh_import_id: [steve-stevebaker]
-apt_sources:
- - source: "ppa:steve-stevebaker/heat-cfntools"
-runcmd:
- - [ apt-get, heat-cfntools ]
